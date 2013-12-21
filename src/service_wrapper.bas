@@ -42,7 +42,8 @@ sub ServiceWrapper.onInit(byval service as MiniService ptr)
         trace("prepare and start child process")
         this->child = new ConsoleProcess( _
             this->config->executable, _
-            this->config->arguments _
+            this->config->arguments, _
+            this->config->stopArguments _
         )
         var child = this->child
 

@@ -10,6 +10,7 @@ type ConfigurationFile
     '# properties (read-only)
     declare property executable as string
     declare property arguments as string
+    declare property stopArguments as string
     declare property directory as string
     declare property logfile as string
 

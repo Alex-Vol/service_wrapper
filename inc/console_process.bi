@@ -4,12 +4,13 @@
 #include once "windows.bi"
 
 type ConsoleProcess
-    declare constructor(byref as string, byref as string = "")
+    declare constructor(byref as string, byref as string = "", byref as string = "")
     declare destructor()
 
     '# properties (read-only)
     declare property executable as string
     declare property arguments as string
+    declare property stopArguments as string
     declare property pid as integer
     declare property directory as string
     declare property directory(byref as string)
@@ -24,12 +25,14 @@ type ConsoleProcess
     declare function redirected() as integer
 
 private:
+    declare function newProcess(byref exec_args as string, byref new_process_info as PROCESS_INFORMATION) as integer
     '# used by SetConsoleCtrlHandler
     declare static function handler_routine(byval as DWORD) as BOOL
 
     '# hold property values
     _executable as string
     _arguments as string
+    _stopArguments as string
     _pid as integer
     _process_info as PROCESS_INFORMATION
     _redirect_filename as string

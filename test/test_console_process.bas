@@ -35,6 +35,14 @@ namespace TestConsoleProcess
     sub test_optional_arguments()
         var child = new ConsoleProcess("prog.exe", "arg1 arg2")
         assert(child->arguments = "arg1 arg2")
+        assert(child->stopArguments = "")
+        delete child
+    end sub
+
+    sub test_optional_stopArguments()
+        var child = new ConsoleProcess("prog.exe", "arg1 arg2", "stop1 stop2")
+        assert(child->arguments = "arg1 arg2")
+        assert(child->stopArguments = "stop1 stop2")
         delete child
     end sub
 

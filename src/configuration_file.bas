@@ -16,6 +16,10 @@ property ConfigurationFile.arguments() as string
     return retrieve("arguments")
 end property
 
+property ConfigurationFile.stopArguments() as string
+    return retrieve("stopArguments")
+end property
+
 property ConfigurationFile.directory() as string
     return retrieve("directory")
 end property

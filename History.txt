@@ -1,3 +1,8 @@
+=== 0.1.2 / 2013-11-20
+
+* Enhancements
+  * Added stopArguments option to support service processes that require executing the same process with arguments to shutdown the engine. Example is the nginx web server executable which has worker processes under the control of the main process.
+  
 === 0.1.1 / 2012-08-21
 
 * Internal

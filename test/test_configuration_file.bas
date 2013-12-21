@@ -14,6 +14,12 @@ namespace TestConfigurationFile
         delete conf
     end sub
 
+    sub test_read_stopArguments
+        var conf = new ConfigurationFile("fixtures/simple.conf")
+        assert(conf->stopArguments = "stop1 stop2")
+        delete conf
+    end sub
+
     sub test_read_directory
         var conf = new ConfigurationFile("fixtures/simple.conf")
         assert(conf->directory = $"C:\MyApp")
@@ -37,6 +43,7 @@ namespace TestConfigurationFile
         print "TestConfigurationFile: ";
         progress(test_read_executable)
         progress(test_read_arguments)
+        progress(test_read_stopArguments)
         progress(test_read_directory)
         progress(test_read_logfile)
         progress(test_ignore_garbage_section)

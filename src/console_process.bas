@@ -1,6 +1,6 @@
 #include once "console_process.bi"
 
-constructor ConsoleProcess(byref exe as string, byref args as string = "")
+constructor ConsoleProcess(byref exe as string, byref args as string = "", byref stopArgs as string = "" )
     '# store executable name for future references
 
     '# executable with spaces?
@@ -11,6 +11,7 @@ constructor ConsoleProcess(byref exe as string, byref args as string = "")
     end if
 
     _arguments = args
+    _stopArguments = stopArgs
     _pid = 0
 end constructor
 
@@ -29,6 +30,10 @@ property ConsoleProcess.arguments() as string
     return _arguments
 end property
 
+property ConsoleProcess.stopArguments() as string
+    return _stopArguments
+end property
+
 property ConsoleProcess.pid() as integer
     return _pid
 end property
@@ -42,6 +47,22 @@ property ConsoleProcess.directory(byref new_directory as string)
 end property
 
 function ConsoleProcess.start() as integer
+    '# assume nothing worked
+    dim result as integer = 0
+    dim success as integer = 0
+    
+    success = newProcess(_arguments, _process_info)
+    if (success) then
+        _pid = _process_info.dwProcessId
+        result = success
+    else
+        result = 0
+    end if
+
+    return result
+end function
+
+function ConsoleProcess.newProcess(byref exec_args as string, byref new_process_info as PROCESS_INFORMATION) as integer
     '# assume nothing worked
     dim result as integer = 0
     dim success as integer = 0
@@ -113,9 +134,9 @@ function ConsoleProcess.start() as integer
         end with
 
         '# build command line (for LpCommandLine)
-        cmdline = _executable + " " + _arguments
+        cmdline = _executable + " " + exec_args
 
-        success = CreateProcess( _
+        result = CreateProcess( _
             NULL, _                 '# LPCTSTR lpApplicationName
             cmdline, _              '# LPTSTR lpCommandLine
             NULL, _                 '# LPSECURITY_ATTRIBUTES lpProcessAttributes
@@ -125,16 +146,12 @@ function ConsoleProcess.start() as integer
             NULL, _                 '# LPVOID lpEnvironment
             _directory, _           '# LPCTSTR lpCurrentDirectory
             @context, _             '# LPSTARTUPINFO lpStartupInfo
-            @_process_info _        '# LPPROCESS_INFORMATION lpProcessInformation
+            @new_process_info _     '# LPPROCESS_INFORMATION lpProcessInformation
         )
-        if (success) then
+        if (result) then
             '# clean unused handle
-            CloseHandle(_process_info.hThread)
-            _process_info.hThread = NULL
-
-            _pid = _process_info.dwProcessId
-            result = success
-        else
+            CloseHandle(new_process_info.hThread)
+            new_process_info.hThread = NULL
         end if
     end if
 
@@ -182,30 +199,44 @@ function ConsoleProcess.terminate(byval default_timeout as integer = 5) as integ
     dim success as integer
     dim wait_code as integer
     dim timeout as integer = default_timeout * 1000 '# milliseconds
+    dim stop_process_info as PROCESS_INFORMATION
 
     if (running) then
-        '# hook our handler routine
-        success = SetConsoleCtrlHandler(@handler_routine, TRUE)
-        if (success) then
-            '# send CTRL_C_EVENT and wait for result
-            success = GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)
+        if not (_stopArguments = "") then
+            success = newProcess(_stopArguments, stop_process_info)
             if (success) then
-                wait_code = WaitForSingleObject(_process_info.hProcess, timeout)
+                wait_code = WaitForSingleObject(stop_process_info.hProcess, timeout)
+                CloseHandle(stop_process_info.hProcess)
+                stop_process_info.hProcess = NULL
+                if not (wait_code = WAIT_TIMEOUT) then
+                    wait_code = WaitForSingleObject(_process_info.hProcess, timeout)
+                end if
                 result = not (wait_code = WAIT_TIMEOUT)
             end if
-
-            '# didn't work? send Ctrl+Break and wait
-            if not (result) then
-                success = GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, 0)
+        else
+            '# hook our handler routine
+            success = SetConsoleCtrlHandler(@handler_routine, TRUE)
+            if (success) then
+                '# send CTRL_C_EVENT and wait for result
+                success = GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0)
                 if (success) then
                     wait_code = WaitForSingleObject(_process_info.hProcess, timeout)
                     result = not (wait_code = WAIT_TIMEOUT)
                 end if
-            end if
-        end if
 
-        '# remove to restore functionality
-        success = SetConsoleCtrlHandler(@handler_routine, FALSE)
+                '# didn't work? send Ctrl+Break and wait
+                if not (result) then
+                    success = GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, 0)
+                    if (success) then
+                        wait_code = WaitForSingleObject(_process_info.hProcess, timeout)
+                        result = not (wait_code = WAIT_TIMEOUT)
+                    end if
+                end if
+            end if
+
+            '# remove to restore functionality
+            success = SetConsoleCtrlHandler(@handler_routine, FALSE)
+        end if
     end if
 
     return result
